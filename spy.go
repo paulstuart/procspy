@@ -5,10 +5,13 @@ package procspy
 
 import (
 	"net"
+
+	"github.com/paulstuart/procspy/tcp"
 )
 
 const (
-	tcpEstablished = 1 // according to /include/net/tcp_states.h
+	tcpEstablished = uint(tcp.TCP_ESTABLISHED) // according to /include/net/tcp_states.h
+	tcpListening   = uint(tcp.TCP_LISTEN)
 )
 
 // Connection is a (TCP) connection. The Proc struct might not be filled in.
@@ -38,6 +41,6 @@ type ConnIter interface {
 // If processes is true it'll additionally try to lookup the process owning the
 // connection, filling in the Proc field. You will need to run this as root to
 // find all processes.
-func Connections(processes bool) (ConnIter, error) {
-	return cbConnections(processes)
+func Connections(processes, listen bool) (ConnIter, error) {
+	return cbConnections(processes, listen)
 }

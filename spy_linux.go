@@ -31,7 +31,7 @@ func (c *pnConnIter) Next() *Connection {
 }
 
 // cbConnections sets Connections()
-var cbConnections = func(processes bool) (ConnIter, error) {
+var cbConnections = func(processes, listen bool) (ConnIter, error) {
 	// buffer for contents of /proc/<pid>/net/tcp
 	buf := bufPool.Get().(*bytes.Buffer)
 	buf.Reset()
@@ -49,8 +49,12 @@ var cbConnections = func(processes bool) (ConnIter, error) {
 		readFile(procRoot+"/net/tcp6", buf)
 	}
 
+	state := tcpEstablished
+	if listen {
+		state = tcpListening
+	}
 	return &pnConnIter{
-		pn:    NewProcNet(buf.Bytes(), tcpEstablished),
+		pn:    NewProcNet(buf.Bytes(), uint(state)),
 		buf:   buf,
 		procs: procs,
 	}, nil

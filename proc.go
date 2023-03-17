@@ -104,24 +104,11 @@ func walkProcPid(buf *bytes.Buffer) (map[uint64]Proc, error) {
 
 // procName does a pid->name lookup.
 func procName(base string) string {
-	fh, err := os.Open(filepath.Join(base, "/comm"))
-	if err != nil {
-		return ""
+	b, err := os.ReadFile(filepath.Join(base, "/comm"))
+	if err == nil && len(b) > 1 {
+		return string(b[:len(b)-1])
 	}
-
-	name := make([]byte, 64)
-	l, err := fh.Read(name)
-	fh.Close()
-	if err != nil {
-		return ""
-	}
-
-	if l < 2 {
-		return ""
-	}
-
-	// drop trailing "\n"
-	return string(name[:l-1])
+	return ""
 }
 
 // readFile reads an arbitrary file into a buffer. It's a variable so it can

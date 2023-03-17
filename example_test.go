@@ -8,7 +8,7 @@ import (
 
 func Example() {
 	lookupProcesses := true
-	cs, err := procspy.Connections(lookupProcesses)
+	cs, err := procspy.Connections(lookupProcesses, false)
 	if err != nil {
 		panic(err)
 	}

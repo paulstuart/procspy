@@ -27,45 +27,46 @@ func NewProcNet(b []byte, wantedState uint) *ProcNet {
 // Next returns the next connection. All buffers are re-used, so if you want
 // to keep the IPs you have to copy them.
 func (p *ProcNet) Next() *Connection {
-again:
-	if len(p.b) == 0 {
-		return nil
-	}
-	b := p.b
+	for {
+		if len(p.b) == 0 {
+			return nil
+		}
+		b := p.b
 
-	if p.b[2] == 's' {
-		// Skip header
+		if p.b[2] == 's' {
+			// Skip header
+			p.b = nextLine(b)
+			continue
+		}
+
+		var (
+			local, remote, state, inode []byte
+		)
+		_, b = nextField(b) // 'sl' column
+		local, b = nextField(b)
+		remote, b = nextField(b)
+		state, b = nextField(b)
+		if parseHex(state) != p.wantedState {
+			p.b = nextLine(b)
+			continue
+		}
+		_, b = nextField(b) // 'tx_queue' column
+		_, b = nextField(b) // 'rx_queue' column
+		_, b = nextField(b) // 'tr' column
+		_, b = nextField(b) // 'uid' column
+		_, b = nextField(b) // 'timeout' column
+		inode, b = nextField(b)
+
+		p.c.LocalAddress, p.c.LocalPort = scanAddressNA(local, &p.bytesLocal)
+		p.c.RemoteAddress, p.c.RemotePort = scanAddressNA(remote, &p.bytesRemote)
+		p.c.inode = parseDec(inode)
 		p.b = nextLine(b)
-		goto again
+		if _, alreadySeen := p.seen[p.c.inode]; alreadySeen {
+			continue
+		}
+		p.seen[p.c.inode] = struct{}{}
+		return &p.c
 	}
-
-	var (
-		local, remote, state, inode []byte
-	)
-	_, b = nextField(b) // 'sl' column
-	local, b = nextField(b)
-	remote, b = nextField(b)
-	state, b = nextField(b)
-	if parseHex(state) != p.wantedState {
-		p.b = nextLine(b)
-		goto again
-	}
-	_, b = nextField(b) // 'tx_queue' column
-	_, b = nextField(b) // 'rx_queue' column
-	_, b = nextField(b) // 'tr' column
-	_, b = nextField(b) // 'uid' column
-	_, b = nextField(b) // 'timeout' column
-	inode, b = nextField(b)
-
-	p.c.LocalAddress, p.c.LocalPort = scanAddressNA(local, &p.bytesLocal)
-	p.c.RemoteAddress, p.c.RemotePort = scanAddressNA(remote, &p.bytesRemote)
-	p.c.inode = parseDec(inode)
-	p.b = nextLine(b)
-	if _, alreadySeen := p.seen[p.c.inode]; alreadySeen {
-		goto again
-	}
-	p.seen[p.c.inode] = struct{}{}
-	return &p.c
 }
 
 // scanAddressNA parses 'A12CF62E:00AA' to the address/port. Handles IPv4 and
