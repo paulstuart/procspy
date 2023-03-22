@@ -1,20 +1,20 @@
-.PHONY: all build buildall test install bench
-all: test build buildall install
+.PHONY: all build test install bench
+all: test build install
 
 build: 
-	go build
 	go vet
-	golint .
+	#golangci-lint run ./...
+	cd cmd/procspy; go build
 
-buildall:
-	GOOS=darwin go build
-	GOOS=linux go build
+# buildall:
+# 	GOOS=darwin go build
+# 	GOOS=linux go build
 
 test:
 	go test
 
 install:
-	go install
+	cd cmd/procspy; go install
 
 bench:
 	go test -bench .
